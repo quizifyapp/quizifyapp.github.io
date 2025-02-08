@@ -810,7 +810,7 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* Timer display */
+/* Update timer display styles */
 .timer-display {
     position: fixed;
     top: 20px;
@@ -825,11 +825,61 @@ input:checked + .slider:before {
     color: var(--text-color);
     z-index: 1000;
     border: 2px solid var(--primary-color);
+    transition: all 0.3s ease;
 }
 
 .timer-display.warning {
-    color: #dc3545;
+    color: #ffa500;
+    border-color: #ffa500;
     animation: pulse 1s infinite;
+}
+
+.timer-display.urgent {
+    color: #dc3545;
+    border-color: #dc3545;
+    animation: pulse 0.5s infinite;
+}
+
+/* Timer alert styles */
+.timer-alert {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: var(--border-radius);
+    font-size: 1.5rem;
+    font-weight: 600;
+    z-index: 1001;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.timer-alert.fade-out {
+    animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
 }
 
 @keyframes pulse {
@@ -844,9 +894,10 @@ input:checked + .slider:before {
     }
 }
 
-[data-theme="dark"] .timer-display {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+/* Dark mode support */
+[data-theme="dark"] .timer-alert {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: var(--dark-bg);
 }
 
 /* Tab Navigation Styles */

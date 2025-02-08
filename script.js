@@ -596,16 +596,36 @@ function createTimerDisplay() {
 function startTimer(duration) {
     const timerDisplay = createTimerDisplay();
     timeLeft = duration * 60; // Convert minutes to seconds
+    const fiveMinutes = 5 * 60; // 5 minutes in seconds
+    const oneMinute = 60; // 1 minute in seconds
     
     function updateTimer() {
         timerDisplay.textContent = formatTime(timeLeft);
         
-        if (timeLeft <= 60) { // Last minute
+        // Add warning classes based on time remaining
+        if (timeLeft <= fiveMinutes) {
+            timerDisplay.classList.remove('normal');
             timerDisplay.classList.add('warning');
+            
+            if (timeLeft === fiveMinutes) {
+                // Flash 5-minute warning
+                showTimerAlert('5 minutes remaining!');
+            }
+            
+            if (timeLeft <= oneMinute) {
+                timerDisplay.classList.remove('warning');
+                timerDisplay.classList.add('urgent');
+                
+                if (timeLeft === oneMinute) {
+                    // Flash 1-minute warning
+                    showTimerAlert('1 minute remaining!');
+                }
+            }
         }
         
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
+            showTimerAlert('Time\'s up!');
             submitQuizBtn.click(); // Auto-submit when time is up
             timerDisplay.remove();
         }
@@ -614,6 +634,20 @@ function startTimer(duration) {
     
     updateTimer(); // Initial display
     timerInterval = setInterval(updateTimer, 1000);
+}
+
+// Add function to show timer alerts
+function showTimerAlert(message) {
+    const alert = document.createElement('div');
+    alert.className = 'timer-alert';
+    alert.textContent = message;
+    document.body.appendChild(alert);
+    
+    // Remove alert after animation
+    setTimeout(() => {
+        alert.classList.add('fade-out');
+        setTimeout(() => alert.remove(), 500);
+    }, 2000);
 }
 
 // Initialize the application
