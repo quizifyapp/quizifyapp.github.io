@@ -578,4 +578,39 @@ input[type="number"]:focus,
 
 [data-theme="dark"] .result-item p {
     color: var(--dark-text);
+}
+
+/* Update the form select styles for dark mode */
+[data-theme="dark"] .form-select {
+    background-color: var(--dark-card);
+    color: var(--dark-text);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .form-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Style the dropdown options in dark mode */
+[data-theme="dark"] .form-select option {
+    background-color: var(--dark-card);
+    color: var(--dark-text);
+}
+
+/* Update loading screen text color for dark mode */
+[data-theme="dark"] .loading-screen p,
+.loading-screen p {  /* Always keep loading text white since overlay is dark */
+    color: white;
+}
+
+/* Style the loading indicator text for dark mode */
+[data-theme="dark"] .loading::after {
+    color: white;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Add hover effect for the dropdown in dark mode */
+[data-theme="dark"] .form-select:hover {
+    border-color: var(--primary-color);
 } 
