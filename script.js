@@ -6,7 +6,7 @@ console.log('AI Quiz Generator initialized');
 // Store quiz data
 let currentQuiz = {
     questions: [],
-    answers: []
+    answers: {} // Change to object to store answers by question number
 };
 
 // DOM Elements
@@ -27,8 +27,13 @@ const questionType = document.getElementById('questionType');
 const timerToggle = document.getElementById('timerToggle');
 const timerSettings = document.getElementById('timerSettings');
 const timerMinutes = document.getElementById('timerMinutes');
+const viewMode = document.getElementById('viewMode');
+const aboutBtn = document.getElementById('aboutBtn');
+const aboutModal = document.getElementById('aboutModal');
+const closeBtn = aboutModal.querySelector('.close-btn');
 let timerInterval;
 let timeLeft;
+let currentQuestionIndex = 0;
 
 // Handle file input
 fileInput.addEventListener('change', async (e) => {
@@ -137,30 +142,159 @@ quizForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Generate quiz questions
+// Update the displayQuestions function
+function displayQuestions(questions) {
+    currentQuiz.questions = questions;
+    currentQuestionIndex = 0;
+    
+    if (viewMode.value === 'single') {
+        displaySingleQuestion();
+    } else {
+        displayAllQuestions();
+    }
+}
+
+// Update displaySingleQuestion to preserve answers
+function displaySingleQuestion() {
+    const question = currentQuiz.questions[currentQuestionIndex];
+    const totalQuestions = currentQuiz.questions.length;
+    const questionNumber = currentQuestionIndex + 1;
+    
+    quizQuestions.innerHTML = `
+        <div class="progress-container">
+            <div class="progress-text">
+                <span>Question ${questionNumber} of ${totalQuestions}</span>
+                <span>${Math.round((questionNumber / totalQuestions) * 100)}%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${(questionNumber / totalQuestions) * 100}%"></div>
+            </div>
+        </div>
+        ${generateQuestionHTML(question, currentQuestionIndex)}
+        <div class="question-navigation">
+            <button type="button" class="nav-btn" id="prevQuestion" ${currentQuestionIndex === 0 ? 'disabled' : ''}>
+                Previous Question
+            </button>
+            <button type="button" class="nav-btn" id="nextQuestion">
+                ${currentQuestionIndex === totalQuestions - 1 ? 'Finish Quiz' : 'Next Question'}
+            </button>
+        </div>
+    `;
+    
+    // Restore previous answer if it exists
+    const savedAnswer = currentQuiz.answers[questionNumber];
+    if (savedAnswer !== undefined) {
+        if (question.type === 'multiple-choice') {
+            const radioBtn = document.querySelector(`input[name="question${questionNumber}"][value="${savedAnswer}"]`);
+            if (radioBtn) radioBtn.checked = true;
+        } else {
+            const textarea = document.querySelector(`#q${questionNumber}response`);
+            if (textarea) textarea.value = savedAnswer;
+        }
+    }
+    
+    // Add navigation event listeners
+    const prevBtn = document.getElementById('prevQuestion');
+    const nextBtn = document.getElementById('nextQuestion');
+    
+    prevBtn?.addEventListener('click', () => {
+        saveCurrentAnswer();
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            displaySingleQuestion();
+        }
+    });
+    
+    nextBtn?.addEventListener('click', () => {
+        saveCurrentAnswer();
+        if (currentQuestionIndex < totalQuestions - 1) {
+            currentQuestionIndex++;
+            displaySingleQuestion();
+        } else {
+            submitQuizBtn.click();
+        }
+    });
+}
+
+// Add function to save current answer
+function saveCurrentAnswer() {
+    const questionNumber = currentQuestionIndex + 1;
+    const question = currentQuiz.questions[currentQuestionIndex];
+    
+    if (question.type === 'multiple-choice') {
+        const selectedOption = document.querySelector(`input[name="question${questionNumber}"]:checked`);
+        if (selectedOption) {
+            currentQuiz.answers[questionNumber] = selectedOption.value;
+        }
+    } else {
+        const textarea = document.querySelector(`#q${questionNumber}response`);
+        if (textarea) {
+            currentQuiz.answers[questionNumber] = textarea.value;
+        }
+    }
+}
+
+// Add function to display all questions
+function displayAllQuestions() {
+    quizQuestions.innerHTML = currentQuiz.questions
+        .map((question, index) => generateQuestionHTML(question, index))
+        .join('');
+}
+
+// Add this function before displayQuestions
+function generateQuestionHTML(question, index) {
+    const questionNumber = index + 1;
+    
+    if (question.type === 'multiple-choice') {
+        return `
+            <div class="question ${question.difficulty}">
+                <div class="question-text">
+                    <span class="question-number">${questionNumber}</span>
+                    <div>
+                        <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span>
+                        ${question.question}
+                    </div>
+                </div>
+                <div class="options">
+                    ${question.options.map((option, optionIndex) => `
+                        <label class="option" for="q${questionNumber}o${optionIndex}">
+                            <input type="radio" 
+                                   name="question${questionNumber}" 
+                                   value="${optionIndex}"
+                                   id="q${questionNumber}o${optionIndex}">
+                            <span>${option}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        return `
+            <div class="question ${question.difficulty}">
+                <div class="question-text">
+                    <span class="question-number">${questionNumber}</span>
+                    <div>
+                        <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span>
+                        <span class="question-type-badge">Free Response</span>
+                        ${question.question}
+                    </div>
+                </div>
+                <div class="free-response">
+                    <textarea 
+                        class="response-input" 
+                        rows="4" 
+                        placeholder="Type your answer here..."
+                        id="q${questionNumber}response"
+                    ></textarea>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Update the generateQuiz function
 async function generateQuiz(text, numQuestions) {
     try {
-        const difficulty = difficultyLevel.value;
-        const type = questionType.value;
-        
-        if (!difficulty || !type) {
-            throw new Error('Missing difficulty level or question type');
-        }
-
-        const difficultyPrompts = {
-            beginner: "Use simple vocabulary and straightforward questions. Focus on basic recall and understanding.",
-            easy: "Use basic concepts and clear language. Include some simple analysis questions.",
-            medium: "Balance recall and analysis questions. Use moderate complexity in language and concepts.",
-            hard: "Include complex analysis and application questions. Use advanced vocabulary and concepts.",
-            expert: "Focus on deep analysis, evaluation, and synthesis. Use expert-level terminology and complex scenarios."
-        };
-
-        const typePrompts = {
-            'multiple-choice': 'Generate only multiple choice questions.',
-            'free-response': 'Generate only free response questions that require written answers.',
-            'mixed': 'Generate a mix of multiple choice and free response questions. About 70% multiple choice and 30% free response.'
-        };
-
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
@@ -169,48 +303,47 @@ async function generateQuiz(text, numQuestions) {
             body: JSON.stringify({
                 contents: [{
                     parts: [{
-                        text: `Generate ${numQuestions} questions based on this text: "${text}".
-                        Difficulty level: ${difficulty}
-                        Question type: ${type}
-                        ${difficultyPrompts[difficulty]}
-                        ${typePrompts[type]}
-                        
-                        You must return a valid JSON array. Each question object must exactly match one of these two formats:
+                        text: `As an expert educator, create ${numQuestions} sophisticated ${questionType.value} questions from this text. 
+                        Difficulty level: ${difficultyLevel.value}
 
-                        For multiple choice questions:
+                        Requirements:
+                        1. Questions should test deep understanding, critical thinking, and application of concepts
+                        2. Include analysis, evaluation, and synthesis-level questions (Bloom's higher levels)
+                        3. For multiple-choice questions:
+                           - Create plausible distractors that test common misconceptions
+                           - Ensure options are mutually exclusive and similar in length
+                           - Include "all of the above" or "none of the above" sparingly
+                        4. For free-response questions:
+                           - Include scenario-based or case study questions
+                           - Ask for comparisons, analyses, or evaluations
+                           - Require specific examples or evidence from the text
+
+                        Return a JSON array where each question object has this exact format:
+                        For multiple-choice:
                         {
+                            "question": "detailed question text",
                             "type": "multiple-choice",
-                            "question": "What is...?",
-                            "options": ["A", "B", "C", "D"],
+                            "difficulty": "${difficultyLevel.value}",
+                            "options": ["option1", "option2", "option3", "option4"],
                             "correctAnswer": 0,
-                            "explanation": "This is correct because...",
-                            "difficulty": "${difficulty}"
+                            "explanation": "detailed explanation of the answer"
                         }
-                        
-                        IMPORTANT: For multiple choice questions:
-                        - Each question must have exactly ONE correct answer
-                        - Do NOT create "select all that apply" questions
-                        - Do NOT create questions with multiple correct answers
-                        - The options array must have exactly 4 choices
-                        - The correctAnswer must be the index (0-3) of the single correct option
-                        
-                        For free response questions:
+
+                        For free-response:
                         {
+                            "question": "detailed question text",
                             "type": "free-response",
-                            "question": "Explain how...?",
-                            "sampleAnswer": "A complete answer would include...",
-                            "keyPoints": ["First key point", "Second key point", "Third key point"],
-                            "difficulty": "${difficulty}"
+                            "difficulty": "${difficultyLevel.value}",
+                            "sampleAnswer": "comprehensive model answer",
+                            "keyPoints": ["key point 1", "key point 2", "key point 3"],
+                            "explanation": "detailed explanation"
                         }
 
-                        The response must be a JSON array containing these objects, like this:
-                        [
-                            {question object 1},
-                            {question object 2},
-                            etc...
-                        ]
+                        Text to generate questions from:
+                        ${text}
 
-                        Ensure all required fields are present and properly formatted.`
+                        Make questions progressively more challenging. Ensure questions are clear, unambiguous, and test different cognitive levels.
+                        Return only the JSON array with no additional text or formatting.`
                     }]
                 }],
                 generationConfig: {
@@ -220,65 +353,43 @@ async function generateQuiz(text, numQuestions) {
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.error?.message || 'Failed to generate questions');
-        }
-
         const data = await response.json();
-        let questions;
         
+        // Clean and parse the response
+        const responseText = data.candidates[0].content.parts[0].text;
+        const cleanedResponse = responseText
+            .trim()
+            .replace(/```json\s*|\s*```/g, '') // Remove code blocks if present
+            .replace(/[\n\r]+/g, ' ') // Remove newlines
+            .replace(/\s+/g, ' '); // Normalize spaces
+
+        let questions;
         try {
-            // Extract text from Gemini response
-            const content = data.candidates[0].content.parts[0].text;
-            // Clean the response to ensure it's valid JSON
-            const cleanedContent = content.trim().replace(/```json\n?|\n?```/g, '');
-            questions = JSON.parse(cleanedContent);
+            questions = JSON.parse(cleanedResponse);
             
-            // Validate the response format
+            // Validate the questions format
             if (!Array.isArray(questions)) {
                 throw new Error('Response is not an array');
             }
-            
+
             questions.forEach((q, i) => {
                 if (!q.question || !q.type || !q.difficulty) {
-                    throw new Error(`Missing required fields at index ${i}`);
-                }
-
-                if (q.type === 'multiple-choice') {
-                    if (!Array.isArray(q.options) || 
-                        q.options.length !== 4 || 
-                        typeof q.correctAnswer !== 'number' ||
-                        !q.explanation) {
-                        throw new Error(`Invalid multiple choice question format at index ${i}`);
-                    }
-                } else if (q.type === 'free-response') {
-                    if (!q.sampleAnswer || !Array.isArray(q.keyPoints)) {
-                        throw new Error(`Invalid free response question format at index ${i}`);
-                    }
-                } else {
-                    throw new Error(`Invalid question type at index ${i}`);
+                    throw new Error(`Invalid question format at index ${i}`);
                 }
             });
-        } catch (e) {
-            console.error('Failed to parse AI response:', data.candidates[0].content.parts[0].text);
-            throw new Error('Invalid response format from AI: ' + e.message);
-        }
-        
-        currentQuiz.questions = questions.map((q, index) => ({
-            ...q,
-            id: index + 1
-        }));
 
-        // Clear previous questions
-        quizQuestions.innerHTML = '';
-        
-        // Display new questions
-        currentQuiz.questions.forEach(displayQuestion);
+            // Display the questions
+            displayQuestions(questions);
+            return questions;
+
+        } catch (parseError) {
+            console.error('Failed to parse response:', cleanedResponse);
+            throw new Error('Invalid question format from AI');
+        }
 
     } catch (error) {
         console.error('Error in generateQuiz:', error);
-        throw new Error('Failed to generate quiz: ' + (error.message || 'Unknown error'));
+        throw new Error('Failed to generate quiz: ' + error.message);
     }
 }
 
@@ -334,38 +445,53 @@ function displayQuestion(question) {
 
 // Update the quiz submission handler
 submitQuizBtn.addEventListener('click', async () => {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        const timerDisplay = document.querySelector('.timer-display');
-        if (timerDisplay) {
-            timerDisplay.remove();
-        }
+    // Save the current answer before submitting
+    if (viewMode.value === 'single') {
+        saveCurrentAnswer();
+    } else {
+        // Save all answers from the all-questions view
+        currentQuiz.questions.forEach((question, index) => {
+            const questionNumber = index + 1;
+            if (question.type === 'multiple-choice') {
+                const selectedOption = document.querySelector(`input[name="question${questionNumber}"]:checked`);
+                if (selectedOption) {
+                    currentQuiz.answers[questionNumber] = selectedOption.value;
+                }
+            } else {
+                const textarea = document.querySelector(`#q${questionNumber}response`);
+                if (textarea) {
+                    currentQuiz.answers[questionNumber] = textarea.value;
+                }
+            }
+        });
     }
+
     try {
         loadingScreen.classList.remove('hidden');
-        loadingScreen.querySelector('p').textContent = 'Grading your answers...';
-        
-        const results = await evaluateQuiz();
+        const results = await gradeQuiz();
         displayResults(results);
         quizSection.classList.add('hidden');
         resultsSection.classList.remove('hidden');
     } catch (error) {
+        console.error('Grading error:', error);
         alert('Error grading quiz: ' + error.message);
     } finally {
         loadingScreen.classList.add('hidden');
-        loadingScreen.querySelector('p').textContent = 'Generating your quiz...';
     }
 });
 
 // Update the grading prompt for better feedback
-async function evaluateQuiz() {
+async function gradeQuiz() {
     const results = [];
     
-    for (const question of currentQuiz.questions) {
+    for (let i = 0; i < currentQuiz.questions.length; i++) {
+        const question = currentQuiz.questions[i];
+        const questionNumber = i + 1;
+        
         if (question.type === 'multiple-choice') {
-            const selectedAnswer = document.querySelector(`input[name="question${question.id}"]:checked`);
-            const isCorrect = selectedAnswer ? 
-                parseInt(selectedAnswer.value) === question.correctAnswer : 
+            const selectedAnswer = currentQuiz.answers[questionNumber];
+            const isCorrect = selectedAnswer !== undefined ? 
+                parseInt(selectedAnswer) === question.correctAnswer : 
                 false;
             
             results.push({
@@ -373,15 +499,15 @@ async function evaluateQuiz() {
                 type: 'multiple-choice',
                 isCorrect,
                 correctAnswer: question.options[question.correctAnswer],
-                userAnswer: selectedAnswer ? 
-                    question.options[parseInt(selectedAnswer.value)] : 
+                userAnswer: selectedAnswer !== undefined ? 
+                    question.options[parseInt(selectedAnswer)] : 
                     'No answer selected',
                 explanation: question.explanation
             });
         } else {
-            const userResponse = document.querySelector(`#q${question.id}response`).value.trim();
+            const userResponse = currentQuiz.answers[questionNumber] || '';
             
-            if (!userResponse) {
+            if (!userResponse.trim()) {
                 results.push({
                     question: question.question,
                     type: 'free-response',
@@ -551,6 +677,10 @@ newQuizBtn.addEventListener('click', () => {
             timerDisplay.remove();
         }
     }
+    currentQuiz = {
+        questions: [],
+        answers: {}
+    };
     quizQuestions.innerHTML = '';
     resultsContainer.innerHTML = '';
     textInput.value = '';
@@ -668,5 +798,38 @@ document.addEventListener('DOMContentLoaded', () => {
     quizForm.reset();
     if (essayInput) {
         essayInput.value = '';
+    }
+});
+
+// Add view mode change handler
+viewMode.addEventListener('change', () => {
+    if (currentQuiz.questions.length > 0) {
+        displayQuestions(currentQuiz.questions);
+    }
+});
+
+// Add modal functionality
+aboutBtn.addEventListener('click', () => {
+    aboutModal.classList.remove('hidden');
+    setTimeout(() => aboutModal.classList.add('show'), 10);
+});
+
+closeBtn.addEventListener('click', closeModal);
+
+aboutModal.addEventListener('click', (e) => {
+    if (e.target === aboutModal) {
+        closeModal();
+    }
+});
+
+function closeModal() {
+    aboutModal.classList.remove('show');
+    setTimeout(() => aboutModal.classList.add('hidden'), 300);
+}
+
+// Add escape key handler
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !aboutModal.classList.contains('hidden')) {
+        closeModal();
     }
 });

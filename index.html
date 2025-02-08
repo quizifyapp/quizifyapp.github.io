@@ -13,6 +13,9 @@
 </head>
 <body>
     <div class="container">
+        <div class="about-link">
+            <button id="aboutBtn" class="about-btn">About</button>
+        </div>
         <!-- Theme Toggle Button -->
         <button id="themeToggle" class="theme-toggle">
             <svg class="sun-icon" viewBox="0 0 24 24">
@@ -78,6 +81,14 @@
             </div>
 
             <div class="form-group">
+                <label for="viewMode">Question Display:</label>
+                <select id="viewMode" class="form-select">
+                    <option value="all">Show All Questions</option>
+                    <option value="single">One Question at a Time</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <div class="timer-toggle">
                     <label class="switch">
                         <input type="checkbox" id="timerToggle">
@@ -111,6 +122,23 @@
             </div>
             <button type="button" id="newQuiz" class="btn">Generate New Quiz</button>
         </section>
+    </div>
+    <div id="aboutModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>About Quizify</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Quizify was created by Shreyas Jambapuram, a high school student passionate about making learning more interactive and efficient.</p>
+                <p>This AI-powered quiz generator helps students and teachers create customized quizzes from any text or PDF document.</p>
+                <div class="creator-info">
+                    <h3>Creator</h3>
+                    <p>Shreyas Jambapuram</p>
+                    <p class="subtitle">High School Student</p>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="config.js" type="module"></script>
     <script src="script.js" type="module"></script>
