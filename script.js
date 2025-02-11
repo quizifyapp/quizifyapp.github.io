@@ -7,7 +7,8 @@ console.log('AI Quiz Generator initialized');
 let currentQuiz = {
     questions: [],
     answers: {}, // Change to object to store answers by question number
-    originalText: '' // Store the original text for generating similar quizzes
+    originalText: '', // Store the original text for generating similar quizzes
+    flaggedQuestions: new Set() // Store flagged question numbers
 };
 
 // DOM Elements
@@ -59,7 +60,7 @@ fileInput.addEventListener('change', async (e) => {
         formGroup.classList.remove('loading');
     } catch (error) {
         console.error('Error reading file:', error);
-        alert('Error reading file: ' + error.message);
+        showNotification('Error reading file: ' + error.message, 'error');
         fileInput.value = ''; // Clear the file input
         formGroup.classList.remove('loading');
     }
@@ -99,12 +100,12 @@ quizForm.addEventListener('submit', async (e) => {
     const numQuestions = parseInt(questionCount.value);
     
     if (!text) {
-        alert('Please enter some text or upload a file');
+        showNotification('Please enter some text or upload a file', 'error');
         return;
     }
     
     if (isNaN(numQuestions) || numQuestions < 1 || numQuestions > 30) {
-        alert('Please enter a valid number of questions (1-30)');
+        showNotification('Please enter a valid number of questions (1-30)', 'error');
         return;
     }
     
@@ -132,7 +133,7 @@ quizForm.addEventListener('submit', async (e) => {
         }
     } catch (error) {
         console.error('Quiz generation error:', error);
-        alert('Error generating quiz: ' + error.message);
+        showNotification('Error generating quiz: ' + error.message, 'error');
     } finally {
         // Hide loading screen and re-enable button
         loadingScreen.classList.add('hidden');
@@ -162,26 +163,111 @@ function displaySingleQuestion() {
     const questionNumber = currentQuestionIndex + 1;
     
     quizQuestions.innerHTML = `
-        <div class="progress-container">
+        <div class="progress-container" style="list-style: none;">
             <div class="progress-text">
-                <span class="question-number">${questionNumber} of ${totalQuestions}</span>
-                <span>${Math.round((questionNumber / totalQuestions) * 100)}%</span>
+                <span class="question-number">Question ${questionNumber} of ${totalQuestions}</span>
+                <span class="progress-percentage">${Math.round((questionNumber / totalQuestions) * 100)}%</span>
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" style="width: ${(questionNumber / totalQuestions) * 100}%"></div>
             </div>
         </div>
-        ${generateQuestionHTML(question, currentQuestionIndex)}
+        <div class="question-container">
+            ${generateQuestionHTML(question, currentQuestionIndex)}
+            <div class="question-actions">
+                <button class="flag-btn ${currentQuiz.flaggedQuestions.has(questionNumber) ? 'flagged' : ''}" onclick="toggleFlag(${questionNumber})">
+                    ${currentQuiz.flaggedQuestions.has(questionNumber) ? 'Unflag Question' : 'Flag Question'}
+                </button>
+            </div>
+        </div>
         <div class="question-navigation">
             <button type="button" class="nav-btn" id="prevQuestion" ${currentQuestionIndex === 0 ? 'disabled' : ''}>
                 Previous Question
             </button>
+            <button type="button" class="nav-btn" id="reviewQuestions">Review Questions</button>
             <button type="button" class="nav-btn" id="nextQuestion">
                 ${currentQuestionIndex === totalQuestions - 1 ? 'Finish Quiz' : 'Next Question'}
             </button>
         </div>
     `;
-    
+
+    // Add styles for the new elements
+    const style = document.createElement('style');
+    style.textContent = `
+        .progress-container {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            list-style-type: none;
+        }
+        .progress-container::before {
+            display: none;
+        }
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            list-style: none;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            list-style: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.3s ease;
+        }
+        .question-actions {
+            margin: 15px 0;
+            text-align: right;
+        }
+        .flag-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .flag-btn.flagged {
+            background: #ff9800;
+            color: white;
+        }
+        .flag-btn:hover {
+            background: ${currentQuiz.flaggedQuestions.has(questionNumber) ? '#f57c00' : '#e0e0e0'};
+        }
+        .question-navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .nav-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .nav-btn:hover {
+            background: #1976D2;
+        }
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    `;
+    document.head.appendChild(style);
+
     // Restore previous answer if it exists
     const savedAnswer = currentQuiz.answers[questionNumber];
     if (savedAnswer !== undefined) {
@@ -193,29 +279,146 @@ function displaySingleQuestion() {
             if (textarea) textarea.value = savedAnswer;
         }
     }
-    
+
     // Add navigation event listeners
     const prevBtn = document.getElementById('prevQuestion');
     const nextBtn = document.getElementById('nextQuestion');
-    
+    const reviewBtn = document.getElementById('reviewQuestions');
+
     prevBtn?.addEventListener('click', () => {
         saveCurrentAnswer();
-        if (currentQuestionIndex > 0) {
-            currentQuestionIndex--;
-            displaySingleQuestion();
-        }
+        currentQuestionIndex--;
+        displaySingleQuestion();
     });
-    
+
     nextBtn?.addEventListener('click', () => {
         saveCurrentAnswer();
-        if (currentQuestionIndex < totalQuestions - 1) {
+        if (currentQuestionIndex === totalQuestions - 1) {
+            showReviewScreen();
+        } else {
             currentQuestionIndex++;
             displaySingleQuestion();
-        } else {
-            submitQuizBtn.click();
         }
     });
+
+    reviewBtn?.addEventListener('click', () => {
+        saveCurrentAnswer();
+        showReviewScreen();
+    });
 }
+
+// Add function to toggle flag status
+function toggleFlag(questionNumber) {
+    // Save the current answer before toggling flag
+    saveCurrentAnswer();
+    
+    if (currentQuiz.flaggedQuestions.has(questionNumber)) {
+        currentQuiz.flaggedQuestions.delete(questionNumber);
+    } else {
+        currentQuiz.flaggedQuestions.add(questionNumber);
+    }
+    
+    // Redisplay the question, which will restore the saved answer
+    displaySingleQuestion();
+}
+
+// Add function to show review screen
+function showReviewScreen() {
+    saveCurrentAnswer();
+    
+    const totalQuestions = currentQuiz.questions.length;
+    let reviewHTML = `
+        <div class="review-screen">
+            <h2>Review Questions</h2>
+            <div class="questions-grid">
+    `;
+    
+    for (let i = 0; i < totalQuestions; i++) {
+        const questionNum = i + 1;
+        const hasAnswer = currentQuiz.answers[questionNum] !== undefined;
+        const isFlagged = currentQuiz.flaggedQuestions.has(questionNum);
+        
+        reviewHTML += `
+            <div class="question-box ${isFlagged ? 'flagged' : ''}"
+                 onclick="goToQuestion(${i})">
+                <div class="question-number">Q${questionNum}</div>
+                <div class="question-status">
+                    ${isFlagged ? '🚩' : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    reviewHTML += `
+            </div>
+            <div class="review-info">
+                <p>Click any question to review or modify your answer.</p>
+                <p>Click the submit button when you're ready to finish the quiz.</p>
+            </div>
+        </div>
+    `;
+    
+    quizQuestions.innerHTML = reviewHTML;
+    
+    // Add styles for review screen
+    const style = document.createElement('style');
+    style.textContent = `
+        .review-screen {
+            padding: 20px;
+        }
+        .questions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .question-box {
+            padding: 15px;
+            border-radius: 8px;
+            background: #f5f5f5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            border: 2px solid transparent;
+        }
+        .question-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: #2196F3;
+        }
+        .question-box.flagged {
+            border: 2px solid #ff9800;
+        }
+        .question-number {
+            font-weight: bold;
+            color: #333;
+        }
+        .question-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .review-info {
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Add function to navigate to specific question
+function goToQuestion(index) {
+    currentQuestionIndex = index;
+    displaySingleQuestion();
+}
+
+// Make toggleFlag and goToQuestion available globally
+window.toggleFlag = toggleFlag;
+window.goToQuestion = goToQuestion;
 
 // Add function to save current answer
 function saveCurrentAnswer() {
@@ -436,6 +639,7 @@ async function generateQuiz(text, numQuestions, isVariation = false) {
 
     } catch (error) {
         console.error('Error in generateQuiz:', error);
+        showNotification('Failed to generate quiz: ' + error.message, 'error');
         throw new Error('Failed to generate quiz: ' + error.message);
     }
 }
@@ -521,7 +725,7 @@ submitQuizBtn.addEventListener('click', async () => {
         resultsSection.classList.remove('hidden');
     } catch (error) {
         console.error('Grading error:', error);
-        alert('Error grading quiz: ' + error.message);
+        showNotification('Error grading quiz: ' + error.message, 'error');
     } finally {
         loadingScreen.classList.add('hidden');
     }
@@ -666,27 +870,63 @@ async function gradeQuiz() {
     return results;
 }
 
-// Update the results display to show the explanation
+// Update the results display to support dark theme
 function displayResults(results) {
     resultsSection.classList.remove('hidden');
     quizSection.classList.add('hidden');
     
+    // Calculate total score
+    const totalQuestions = results.length;
+    const correctAnswers = results.filter(r => r.isCorrect).length;
+    const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
+    
     let resultsHTML = '<div class="results-content">';
     
-    // Add score if it exists
-    if (results.score !== undefined) {
-        resultsHTML += `<div class="score">Score: ${results.score}%</div>`;
-    }
+    // Add total score at the top
+    resultsHTML += `
+        <div class="total-score">
+            <h2>Quiz Results</h2>
+            <div class="score-display">
+                <span class="score-number">${scorePercentage}%</span>
+                <span class="score-details">${correctAnswers} out of ${totalQuestions} correct</span>
+            </div>
+        </div>
+    `;
     
     // Add individual question results
     results.forEach((result, index) => {
         resultsHTML += `
             <div class="question-result ${result.isCorrect ? 'correct' : 'incorrect'}">
-                <h3>Question ${index + 1}</h3>
-                <p class="question-text">${result.question}</p>
-                ${result.userAnswer ? `<p class="user-answer">Your answer: ${result.userAnswer}</p>` : ''}
-                <p class="correct-answer">Correct answer: ${result.correctAnswer}</p>
-                <p class="explanation">${result.explanation}</p>
+                <div class="question-header">
+                    <h3>Question ${index + 1}</h3>
+                    <span class="result-indicator">${result.isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>
+                </div>
+                <div class="question-content">
+                    <p class="question-text">${result.question}</p>
+                    ${result.type === 'multiple-choice' ? `
+                        <div class="answer-section">
+                            <p class="your-answer ${result.isCorrect ? 'correct-text' : 'incorrect-text'}">
+                                Your answer: ${result.userAnswer}
+                            </p>
+                            ${!result.isCorrect ? `
+                                <p class="correct-answer">Correct answer: ${result.correctAnswer}</p>
+                            ` : ''}
+                        </div>
+                    ` : `
+                        <div class="answer-section">
+                            <div class="free-response">
+                                <p class="answer-label">Your Response:</p>
+                                <p class="user-response">${result.userAnswer}</p>
+                                <p class="answer-label">Sample Answer:</p>
+                                <p class="sample-answer">${result.sampleAnswer}</p>
+                            </div>
+                        </div>
+                    `}
+                    <div class="explanation">
+                        <p class="explanation-label">Explanation:</p>
+                        <p>${result.explanation}</p>
+                    </div>
+                </div>
             </div>
         `;
     });
@@ -702,180 +942,165 @@ function displayResults(results) {
     
     resultsContainer.innerHTML = resultsHTML;
 
-    // Create settings dialog for similar quiz
-    const settingsDialog = document.createElement('div');
-    settingsDialog.className = 'settings-dialog hidden';
-    settingsDialog.innerHTML = `
-        <div class="settings-content" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: 40px auto;">
-            <h3>Quiz Settings</h3>
-            <div class="settings-choice" style="margin: 20px 0;">
-                <button id="keepSettings" class="btn">Keep Current Settings</button>
-                <button id="changeSettings" class="btn">Change Settings</button>
-            </div>
-            <div id="newSettings" class="hidden" style="margin-top: 20px;">
-                <div class="form-group">
-                    <label for="newQuestionCount">Number of Questions:</label>
-                    <input type="number" id="newQuestionCount" min="1" max="30" value="${currentQuiz.questions.length}">
-                </div>
-                <div class="form-group">
-                    <label for="newQuestionType">Question Type:</label>
-                    <select id="newQuestionType">
-                        <option value="multiple-choice">Multiple Choice</option>
-                        <option value="free-response">Free Response</option>
-                        <option value="mixed">Mixed</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="newDifficultyLevel">Difficulty Level:</label>
-                    <select id="newDifficultyLevel">
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="newTimerToggle">
-                        Enable Timer
-                    </label>
-                </div>
-                <div id="newTimerSettings" class="hidden">
-                    <label for="newTimerMinutes">Time Limit (minutes):</label>
-                    <input type="number" id="newTimerMinutes" min="1" max="180" value="30">
-                </div>
-                <button id="generateWithNewSettings" class="btn">Generate Quiz</button>
-                <button id="cancelSettings" class="btn">Cancel</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(settingsDialog);
-
-    // Add styles for the dialog
+    // Add styles for results display
     const style = document.createElement('style');
     style.textContent = `
-        .settings-dialog {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
+        .results-content {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .total-score {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--background-alt);
+            border-radius: 8px;
+            color: var(--text-primary);
+        }
+        .score-display {
+            margin-top: 15px;
+        }
+        .score-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--accent-color, #2196F3);
+            display: block;
+        }
+        .score-details {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+        .question-result {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            background: var(--background-alt);
+        }
+        .question-result.correct {
+            background: var(--correct-bg);
+            border-left: 5px solid var(--correct-color);
+        }
+        .question-result.incorrect {
+            background: var(--incorrect-bg);
+            border-left: 5px solid var(--incorrect-color);
+        }
+        .question-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
         }
-        .settings-dialog.hidden {
-            display: none;
+        .result-indicator {
+            font-weight: 500;
         }
-        .settings-content .form-group {
+        .correct .result-indicator {
+            color: var(--correct-color);
+        }
+        .incorrect .result-indicator {
+            color: var(--incorrect-color);
+        }
+        .question-content {
+            padding: 10px 0;
+            color: var(--text-primary);
+        }
+        .question-text {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .answer-section {
             margin: 15px 0;
+            padding: 15px;
+            background: var(--background-alt-transparent);
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
         }
-        .settings-choice {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
+        .your-answer {
+            font-weight: 500;
+            margin-bottom: 10px;
         }
-        .btn {
-            margin: 5px;
-            padding: 8px 16px;
+        .correct-text {
+            color: var(--correct-color);
+        }
+        .incorrect-text {
+            color: var(--incorrect-color);
+        }
+        .correct-answer {
+            color: var(--correct-color);
+            font-weight: 500;
+        }
+        .free-response {
+            margin: 10px 0;
+        }
+        .answer-label {
+            font-weight: 500;
+            margin: 10px 0 5px 0;
+            color: var(--text-secondary);
+        }
+        .user-response, .sample-answer {
+            padding: 10px;
+            background: var(--background-main);
+            border-radius: 4px;
+            margin: 5px 0;
+            border: 1px solid var(--border-color);
+        }
+        .explanation {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        .explanation-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        /* CSS Variables for theme support */
+        :root {
+            /* Light theme */
+            --background-main: #ffffff;
+            --background-alt: #f5f5f5;
+            --background-alt-transparent: rgba(245, 245, 245, 0.5);
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --correct-color: #4CAF50;
+            --incorrect-color: #F44336;
+            --correct-bg: #E8F5E9;
+            --incorrect-bg: #FFEBEE;
+            --accent-color: #2196F3;
+        }
+
+        /* Dark theme */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background-main: #1a1a1a;
+                --background-alt: #2d2d2d;
+                --background-alt-transparent: rgba(45, 45, 45, 0.5);
+                --text-primary: #ffffff;
+                --text-secondary: #b0b0b0;
+                --border-color: rgba(255, 255, 255, 0.1);
+                --correct-color: #81c784;
+                --incorrect-color: #e57373;
+                --correct-bg: rgba(76, 175, 80, 0.15);
+                --incorrect-bg: rgba(244, 67, 54, 0.15);
+                --accent-color: #64b5f6;
+            }
+            
+            .question-result {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            }
+            
+            .answer-section {
+                background: rgba(45, 45, 45, 0.6);
+            }
         }
     `;
     document.head.appendChild(style);
-    
-    // Add event listener for Generate Similar Quiz button
-    document.getElementById('generateSimilar').addEventListener('click', () => {
-        settingsDialog.classList.remove('hidden');
-        
-        // Set current values in the new settings form
-        document.getElementById('newQuestionType').value = questionType.value;
-        document.getElementById('newDifficultyLevel').value = difficultyLevel.value;
-        document.getElementById('newTimerToggle').checked = timerToggle.checked;
-        document.getElementById('newTimerMinutes').value = timerMinutes.value;
-    });
-
-    // Event listeners for settings dialog
-    document.getElementById('keepSettings').addEventListener('click', async () => {
-        settingsDialog.classList.add('hidden');
-        resultsSection.classList.add('hidden');
-        loadingScreen.classList.remove('hidden');
-
-        try {
-            // Get current settings
-            const currentQuestionCount = currentQuiz.questions.length;
-            const currentTimerEnabled = timerToggle.checked;
-            const currentTimerDuration = parseInt(timerMinutes.value);
-
-            // Generate new quiz with current settings
-            await generateQuiz(currentQuiz.originalText, currentQuestionCount, true);
-            
-            // Show quiz section and hide loading
-            quizSection.classList.remove('hidden');
-            loadingScreen.classList.add('hidden');
-            
-            // Start timer if enabled
-            if (currentTimerEnabled && currentTimerDuration > 0) {
-                startTimer(currentTimerDuration);
-            }
-        } catch (error) {
-            console.error('Error generating similar quiz:', error);
-            alert('Failed to generate similar quiz: ' + error.message);
-            loadingScreen.classList.add('hidden');
-            resultsSection.classList.remove('hidden');
-        }
-    });
-
-    document.getElementById('changeSettings').addEventListener('click', () => {
-        document.getElementById('newSettings').classList.remove('hidden');
-    });
-
-    // Timer toggle for new settings
-    document.getElementById('newTimerToggle').addEventListener('change', (e) => {
-        const newTimerSettings = document.getElementById('newTimerSettings');
-        newTimerSettings.classList.toggle('hidden', !e.target.checked);
-    });
-
-    document.getElementById('generateWithNewSettings').addEventListener('click', async () => {
-        const newQuestionCount = parseInt(document.getElementById('newQuestionCount').value);
-        const newQuestionType = document.getElementById('newQuestionType').value;
-        const newDifficultyLevel = document.getElementById('newDifficultyLevel').value;
-        const newTimerEnabled = document.getElementById('newTimerToggle').checked;
-        const newTimerMinutes = parseInt(document.getElementById('newTimerMinutes').value);
-
-        // Update the form settings
-        questionType.value = newQuestionType;
-        difficultyLevel.value = newDifficultyLevel;
-        timerToggle.checked = newTimerEnabled;
-        timerMinutes.value = newTimerMinutes;
-
-        settingsDialog.classList.add('hidden');
-        
-        try {
-            resultsSection.classList.add('hidden');
-            loadingScreen.classList.remove('hidden');
-            
-            await generateQuiz(currentQuiz.originalText, newQuestionCount, true);
-            
-            quizSection.classList.remove('hidden');
-            loadingScreen.classList.add('hidden');
-            
-            if (newTimerEnabled) {
-                if (newTimerMinutes > 0) {
-                    startTimer(newTimerMinutes);
-                }
-            }
-        } catch (error) {
-            console.error('Error generating similar quiz:', error);
-            alert('Failed to generate similar quiz: ' + error.message);
-            loadingScreen.classList.add('hidden');
-            resultsSection.classList.remove('hidden');
-        }
-    });
-
-    document.getElementById('cancelSettings').addEventListener('click', () => {
-        document.getElementById('newSettings').classList.add('hidden');
-        settingsDialog.classList.add('hidden');
-    });
 }
 
 // Handle "Generate New Quiz" button
@@ -890,7 +1115,8 @@ newQuizBtn.addEventListener('click', () => {
     currentQuiz = {
         questions: [],
         answers: {},
-        originalText: ''
+        originalText: '',
+        flaggedQuestions: new Set()
     };
     quizQuestions.innerHTML = '';
     resultsContainer.innerHTML = '';
@@ -989,6 +1215,116 @@ function showTimerAlert(message) {
         alert.classList.add('fade-out');
         setTimeout(() => alert.remove(), 500);
     }, 2000);
+}
+
+// Create a custom popup notification system
+function showNotification(message, type = 'warning') {
+    // Remove any existing notifications
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <button class="notification-close">×</button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Add the styles if they don't exist
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10000;
+                padding: 16px 24px;
+                border-radius: 8px;
+                background: var(--background-alt);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                animation: slideDown 0.3s ease-out;
+                border: 1px solid var(--border-color);
+            }
+
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: var(--text-primary);
+            }
+
+            .notification.warning {
+                border-left: 4px solid #ff9800;
+            }
+
+            .notification.error {
+                border-left: 4px solid var(--incorrect-color);
+            }
+
+            .notification.success {
+                border-left: 4px solid var(--correct-color);
+            }
+
+            .notification-message {
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            .notification-close {
+                background: none;
+                border: none;
+                color: var(--text-secondary);
+                font-size: 20px;
+                cursor: pointer;
+                padding: 0;
+                margin-left: 12px;
+            }
+
+            .notification-close:hover {
+                color: var(--text-primary);
+            }
+
+            @keyframes slideDown {
+                from {
+                    transform: translate(-50%, -100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translate(-50%, 0);
+                    opacity: 1;
+                }
+            }
+
+            @media (prefers-color-scheme: dark) {
+                .notification {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Add close button functionality
+    const closeButton = notification.querySelector('.notification-close');
+    closeButton.addEventListener('click', () => {
+        notification.remove();
+    });
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
 }
 
 // Initialize the application
