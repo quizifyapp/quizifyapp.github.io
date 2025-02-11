@@ -6,7 +6,8 @@ console.log('AI Quiz Generator initialized');
 // Store quiz data
 let currentQuiz = {
     questions: [],
-    answers: {} // Change to object to store answers by question number
+    answers: {}, // Change to object to store answers by question number
+    originalText: '' // Store the original text for generating similar quizzes
 };
 
 // DOM Elements
@@ -163,7 +164,7 @@ function displaySingleQuestion() {
     quizQuestions.innerHTML = `
         <div class="progress-container">
             <div class="progress-text">
-                <span>Question ${questionNumber} of ${totalQuestions}</span>
+                <span class="question-number">${questionNumber} of ${totalQuestions}</span>
                 <span>${Math.round((questionNumber / totalQuestions) * 100)}%</span>
             </div>
             <div class="progress-bar">
@@ -241,10 +242,10 @@ function displayAllQuestions() {
         .join('');
 }
 
-// Add this function before displayQuestions
+// Update this function to ensure proper rendering of question types
 function generateQuestionHTML(question, index) {
     const questionNumber = index + 1;
-    
+
     if (question.type === 'multiple-choice') {
         return `
             <div class="question ${question.difficulty}">
@@ -268,7 +269,7 @@ function generateQuestionHTML(question, index) {
                 </div>
             </div>
         `;
-    } else {
+    } else if (question.type === 'free-response') {
         return `
             <div class="question ${question.difficulty}">
                 <div class="question-text">
@@ -289,12 +290,19 @@ function generateQuestionHTML(question, index) {
                 </div>
             </div>
         `;
+    } else {
+        return ''; // Return empty if the question type is not recognized
     }
 }
 
 // Update the generateQuiz function
-async function generateQuiz(text, numQuestions) {
+async function generateQuiz(text, numQuestions, isVariation = false) {
     try {
+        // Store the original text for generating variations later
+        if (!isVariation) {
+            currentQuiz.originalText = text;
+        }
+
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
@@ -304,22 +312,59 @@ async function generateQuiz(text, numQuestions) {
                 contents: [{
                     parts: [{
                         text: `As an expert educator, create ${numQuestions} sophisticated ${questionType.value} questions from this text. 
+                        ${isVariation ? 'Important: Generate completely different questions than before, but on the same topics and concepts.' : ''}
                         Difficulty level: ${difficultyLevel.value}
 
                         Requirements:
+                        ${questionType.value === 'multiple-choice' ? `
                         1. Questions should test deep understanding, critical thinking, and application of concepts
                         2. Include analysis, evaluation, and synthesis-level questions (Bloom's higher levels)
                         3. For multiple-choice questions:
                            - Create plausible distractors that test common misconceptions
                            - Ensure options are mutually exclusive and similar in length
                            - Include "all of the above" or "none of the above" sparingly
-                        4. For free-response questions:
+                           - Each question MUST have exactly 4 options
+                        
+                        Return a JSON array where each question object has this exact format:
+                        {
+                            "question": "detailed question text",
+                            "type": "multiple-choice",
+                            "difficulty": "${difficultyLevel.value}",
+                            "options": ["option1", "option2", "option3", "option4"],
+                            "correctAnswer": 0,
+                            "explanation": "detailed explanation of the answer"
+                        }` : questionType.value === 'free-response' ? `
+                        1. Questions should test deep understanding, critical thinking, and application of concepts
+                        2. Include analysis, evaluation, and synthesis-level questions (Bloom's higher levels)
+                        3. For free-response questions:
+                           - Include scenario-based or case study questions
+                           - Ask for comparisons, analyses, or evaluations
+                           - Require specific examples or evidence from the text
+                        
+                        Return a JSON array where each question object has this exact format:
+                        {
+                            "question": "detailed question text",
+                            "type": "free-response",
+                            "difficulty": "${difficultyLevel.value}",
+                            "sampleAnswer": "comprehensive model answer",
+                            "keyPoints": ["key point 1", "key point 2", "key point 3"],
+                            "explanation": "detailed explanation"
+                        }` : `
+                        1. Questions should test deep understanding, critical thinking, and application of concepts
+                        2. Include analysis, evaluation, and synthesis-level questions (Bloom's higher levels)
+                        3. Create an equal mix of multiple-choice and free-response questions
+                        4. For multiple-choice questions:
+                           - Create plausible distractors that test common misconceptions
+                           - Ensure options are mutually exclusive and similar in length
+                           - Include "all of the above" or "none of the above" sparingly
+                           - Each question MUST have exactly 4 options
+                        5. For free-response questions:
                            - Include scenario-based or case study questions
                            - Ask for comparisons, analyses, or evaluations
                            - Require specific examples or evidence from the text
 
-                        Return a JSON array where each question object has this exact format:
-                        For multiple-choice:
+                        Return a JSON array where each question object has one of these two exact formats:
+                        For multiple-choice questions:
                         {
                             "question": "detailed question text",
                             "type": "multiple-choice",
@@ -329,7 +374,7 @@ async function generateQuiz(text, numQuestions) {
                             "explanation": "detailed explanation of the answer"
                         }
 
-                        For free-response:
+                        For free-response questions:
                         {
                             "question": "detailed question text",
                             "type": "free-response",
@@ -338,6 +383,8 @@ async function generateQuiz(text, numQuestions) {
                             "keyPoints": ["key point 1", "key point 2", "key point 3"],
                             "explanation": "detailed explanation"
                         }
+
+                        Important: Return an approximately equal number of multiple-choice and free-response questions.`}
 
                         Text to generate questions from:
                         ${text}
@@ -621,51 +668,214 @@ async function gradeQuiz() {
 
 // Update the results display to show the explanation
 function displayResults(results) {
-    const multipleChoiceResults = results.filter(r => r.type === 'multiple-choice');
-    const freeResponseResults = results.filter(r => r.type === 'free-response');
+    resultsSection.classList.remove('hidden');
+    quizSection.classList.add('hidden');
     
-    const correctCount = multipleChoiceResults.filter(r => r.isCorrect).length;
-    const totalScore = freeResponseResults.reduce((sum, r) => sum + r.score, 0);
-    const maxPossibleScore = multipleChoiceResults.length + (freeResponseResults.length * 5);
+    let resultsHTML = '<div class="results-content">';
     
-    resultsContainer.innerHTML = `
-        <div class="score">
-            <h3>Your Score: ${correctCount + totalScore}/${maxPossibleScore}</h3>
-        </div>
-        <div class="results-details">
-            ${results.map((result, index) => {
-                if (result.type === 'multiple-choice') {
-                    return `
-                        <div class="result-item ${result.isCorrect ? 'correct' : 'incorrect'}">
-                            <p><strong>Question ${index + 1}:</strong> ${result.question}</p>
-                            <p>Your answer: ${result.userAnswer}</p>
-                            ${!result.isCorrect ? `
-                                <p>Correct answer: ${result.correctAnswer}</p>
-                                <p class="explanation"><strong>Explanation:</strong> ${result.explanation}</p>
-                            ` : ''}
-                        </div>
-                    `;
-                } else {
-                    return `
-                        <div class="result-item">
-                            <p><strong>Question ${index + 1} (Free Response):</strong> ${result.question}</p>
-                            <p>Your answer: ${result.userAnswer}</p>
-                            <p class="score-badge">Score: ${result.score}/5</p>
-                            <div class="feedback">
-                                <strong>Feedback:</strong> ${result.feedback}
-                            </div>
-                            <div class="explanation">
-                                <strong>Detailed Explanation:</strong> ${result.explanation}
-                            </div>
-                            <div class="sample-answer">
-                                <strong>Sample Answer:</strong> ${result.sampleAnswer}
-                            </div>
-                        </div>
-                    `;
-                }
-            }).join('')}
+    // Add score if it exists
+    if (results.score !== undefined) {
+        resultsHTML += `<div class="score">Score: ${results.score}%</div>`;
+    }
+    
+    // Add individual question results
+    results.forEach((result, index) => {
+        resultsHTML += `
+            <div class="question-result ${result.isCorrect ? 'correct' : 'incorrect'}">
+                <h3>Question ${index + 1}</h3>
+                <p class="question-text">${result.question}</p>
+                ${result.userAnswer ? `<p class="user-answer">Your answer: ${result.userAnswer}</p>` : ''}
+                <p class="correct-answer">Correct answer: ${result.correctAnswer}</p>
+                <p class="explanation">${result.explanation}</p>
+            </div>
+        `;
+    });
+    
+    resultsHTML += '</div>';
+    
+    // Add buttons container with more spacing
+    resultsHTML += `
+        <div class="results-buttons" style="display: flex; justify-content: space-between; margin: 20px 0;">
+            <button id="generateSimilar" class="btn">Generate Similar Quiz</button>
         </div>
     `;
+    
+    resultsContainer.innerHTML = resultsHTML;
+
+    // Create settings dialog for similar quiz
+    const settingsDialog = document.createElement('div');
+    settingsDialog.className = 'settings-dialog hidden';
+    settingsDialog.innerHTML = `
+        <div class="settings-content" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: 40px auto;">
+            <h3>Quiz Settings</h3>
+            <div class="settings-choice" style="margin: 20px 0;">
+                <button id="keepSettings" class="btn">Keep Current Settings</button>
+                <button id="changeSettings" class="btn">Change Settings</button>
+            </div>
+            <div id="newSettings" class="hidden" style="margin-top: 20px;">
+                <div class="form-group">
+                    <label for="newQuestionCount">Number of Questions:</label>
+                    <input type="number" id="newQuestionCount" min="1" max="30" value="${currentQuiz.questions.length}">
+                </div>
+                <div class="form-group">
+                    <label for="newQuestionType">Question Type:</label>
+                    <select id="newQuestionType">
+                        <option value="multiple-choice">Multiple Choice</option>
+                        <option value="free-response">Free Response</option>
+                        <option value="mixed">Mixed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="newDifficultyLevel">Difficulty Level:</label>
+                    <select id="newDifficultyLevel">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="newTimerToggle">
+                        Enable Timer
+                    </label>
+                </div>
+                <div id="newTimerSettings" class="hidden">
+                    <label for="newTimerMinutes">Time Limit (minutes):</label>
+                    <input type="number" id="newTimerMinutes" min="1" max="180" value="30">
+                </div>
+                <button id="generateWithNewSettings" class="btn">Generate Quiz</button>
+                <button id="cancelSettings" class="btn">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(settingsDialog);
+
+    // Add styles for the dialog
+    const style = document.createElement('style');
+    style.textContent = `
+        .settings-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .settings-dialog.hidden {
+            display: none;
+        }
+        .settings-content .form-group {
+            margin: 15px 0;
+        }
+        .settings-choice {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .btn {
+            margin: 5px;
+            padding: 8px 16px;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Add event listener for Generate Similar Quiz button
+    document.getElementById('generateSimilar').addEventListener('click', () => {
+        settingsDialog.classList.remove('hidden');
+        
+        // Set current values in the new settings form
+        document.getElementById('newQuestionType').value = questionType.value;
+        document.getElementById('newDifficultyLevel').value = difficultyLevel.value;
+        document.getElementById('newTimerToggle').checked = timerToggle.checked;
+        document.getElementById('newTimerMinutes').value = timerMinutes.value;
+    });
+
+    // Event listeners for settings dialog
+    document.getElementById('keepSettings').addEventListener('click', async () => {
+        settingsDialog.classList.add('hidden');
+        resultsSection.classList.add('hidden');
+        loadingScreen.classList.remove('hidden');
+
+        try {
+            // Get current settings
+            const currentQuestionCount = currentQuiz.questions.length;
+            const currentTimerEnabled = timerToggle.checked;
+            const currentTimerDuration = parseInt(timerMinutes.value);
+
+            // Generate new quiz with current settings
+            await generateQuiz(currentQuiz.originalText, currentQuestionCount, true);
+            
+            // Show quiz section and hide loading
+            quizSection.classList.remove('hidden');
+            loadingScreen.classList.add('hidden');
+            
+            // Start timer if enabled
+            if (currentTimerEnabled && currentTimerDuration > 0) {
+                startTimer(currentTimerDuration);
+            }
+        } catch (error) {
+            console.error('Error generating similar quiz:', error);
+            alert('Failed to generate similar quiz: ' + error.message);
+            loadingScreen.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('changeSettings').addEventListener('click', () => {
+        document.getElementById('newSettings').classList.remove('hidden');
+    });
+
+    // Timer toggle for new settings
+    document.getElementById('newTimerToggle').addEventListener('change', (e) => {
+        const newTimerSettings = document.getElementById('newTimerSettings');
+        newTimerSettings.classList.toggle('hidden', !e.target.checked);
+    });
+
+    document.getElementById('generateWithNewSettings').addEventListener('click', async () => {
+        const newQuestionCount = parseInt(document.getElementById('newQuestionCount').value);
+        const newQuestionType = document.getElementById('newQuestionType').value;
+        const newDifficultyLevel = document.getElementById('newDifficultyLevel').value;
+        const newTimerEnabled = document.getElementById('newTimerToggle').checked;
+        const newTimerMinutes = parseInt(document.getElementById('newTimerMinutes').value);
+
+        // Update the form settings
+        questionType.value = newQuestionType;
+        difficultyLevel.value = newDifficultyLevel;
+        timerToggle.checked = newTimerEnabled;
+        timerMinutes.value = newTimerMinutes;
+
+        settingsDialog.classList.add('hidden');
+        
+        try {
+            resultsSection.classList.add('hidden');
+            loadingScreen.classList.remove('hidden');
+            
+            await generateQuiz(currentQuiz.originalText, newQuestionCount, true);
+            
+            quizSection.classList.remove('hidden');
+            loadingScreen.classList.add('hidden');
+            
+            if (newTimerEnabled) {
+                if (newTimerMinutes > 0) {
+                    startTimer(newTimerMinutes);
+                }
+            }
+        } catch (error) {
+            console.error('Error generating similar quiz:', error);
+            alert('Failed to generate similar quiz: ' + error.message);
+            loadingScreen.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('cancelSettings').addEventListener('click', () => {
+        document.getElementById('newSettings').classList.add('hidden');
+        settingsDialog.classList.add('hidden');
+    });
 }
 
 // Handle "Generate New Quiz" button
@@ -679,7 +889,8 @@ newQuizBtn.addEventListener('click', () => {
     }
     currentQuiz = {
         questions: [],
-        answers: {}
+        answers: {},
+        originalText: ''
     };
     quizQuestions.innerHTML = '';
     resultsContainer.innerHTML = '';
