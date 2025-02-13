@@ -156,37 +156,38 @@ function displayQuestions(questions) {
     }
 }
 
-// Update displaySingleQuestion to preserve answers
+// Update displaySingleQuestion to include progress dots
 function displaySingleQuestion() {
     const question = currentQuiz.questions[currentQuestionIndex];
     const totalQuestions = currentQuiz.questions.length;
     const questionNumber = currentQuestionIndex + 1;
     
+    // Create progress dots
+    let progressDotsHTML = '<div class="progress-indicator">';
+    for (let i = 0; i < totalQuestions; i++) {
+        const dotClass = i === currentQuestionIndex ? 'active' : 
+                        i < currentQuestionIndex ? 'completed' : '';
+        progressDotsHTML += `<div class="progress-dot ${dotClass}"></div>`;
+    }
+    progressDotsHTML += '</div>';
+
     quizQuestions.innerHTML = `
-        <div class="progress-container" style="list-style: none;">
+        <div class="progress-container">
             <div class="progress-text">
-                <span class="question-number">Question ${questionNumber} of ${totalQuestions}</span>
-                <span class="progress-percentage">${Math.round((questionNumber / totalQuestions) * 100)}%</span>
+                <span>Question ${questionNumber} of ${totalQuestions}</span>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${(questionNumber / totalQuestions) * 100}%"></div>
-            </div>
+            ${progressDotsHTML}
         </div>
         <div class="question-container">
             ${generateQuestionHTML(question, currentQuestionIndex)}
-            <div class="question-actions">
-                <button class="flag-btn ${currentQuiz.flaggedQuestions.has(questionNumber) ? 'flagged' : ''}" onclick="toggleFlag(${questionNumber})">
-                    ${currentQuiz.flaggedQuestions.has(questionNumber) ? 'Unflag Question' : 'Flag Question'}
-                </button>
-            </div>
         </div>
         <div class="question-navigation">
             <button type="button" class="nav-btn" id="prevQuestion" ${currentQuestionIndex === 0 ? 'disabled' : ''}>
-                Previous Question
+                Previous
             </button>
-            <button type="button" class="nav-btn" id="reviewQuestions">Review Questions</button>
+            <button type="button" class="nav-btn" id="reviewQuestions">Review All</button>
             <button type="button" class="nav-btn" id="nextQuestion">
-                ${currentQuestionIndex === totalQuestions - 1 ? 'Finish Quiz' : 'Next Question'}
+                ${currentQuestionIndex === totalQuestions - 1 ? 'Finish Quiz' : 'Next'}
             </button>
         </div>
     `;
@@ -224,46 +225,154 @@ function displaySingleQuestion() {
             background: linear-gradient(90deg, #4CAF50, #8BC34A);
             transition: width 0.3s ease;
         }
-        .question-actions {
-            margin: 15px 0;
-            text-align: right;
+        .question-container {
+            position: relative;
+            padding: 1rem;
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
         }
-        .flag-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            background: #f0f0f0;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .question-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
-        .flag-btn.flagged {
-            background: #ff9800;
+        .difficulty-badge {
+            background-color: var(--primary-color);
             color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius);
         }
-        .flag-btn:hover {
-            background: ${currentQuiz.flaggedQuestions.has(questionNumber) ? '#f57c00' : '#e0e0e0'};
+        .question-type-badge {
+            background-color: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius);
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .option label {
+            cursor: pointer;
+        }
+        .option input {
+            cursor: pointer;
         }
         .question-navigation {
             display: flex;
             justify-content: space-between;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding: 1rem 0;
         }
         .nav-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            background: #2196F3;
-            color: white;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--card-background);
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: var(--border-radius);
             cursor: pointer;
-            transition: background 0.3s ease;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
-        .nav-btn:hover {
-            background: #1976D2;
+        .nav-btn::before,
+        .nav-btn::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.8;
+        }
+        #prevQuestion::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234B4EFC'%3E%3Cpath d='M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z'/%3E%3C/svg%3E");
+        }
+        #nextQuestion::after {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234B4EFC'%3E%3Cpath d='M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'/%3E%3C/svg%3E");
+        }
+        .nav-btn:hover:not(:disabled) {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-btn:hover::before,
+        .nav-btn:hover::after {
+            filter: brightness(0) invert(1);
         }
         .nav-btn:disabled {
-            background: #ccc;
+            opacity: 0.5;
             cursor: not-allowed;
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .nav-btn:disabled::before,
+        .nav-btn:disabled::after {
+            opacity: 0.3;
+        }
+        #reviewQuestions {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+        #reviewQuestions:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        /* Dark theme support */
+        [data-theme="dark"] .nav-btn {
+            background-color: var(--card-background);
+            color: var(--primary-color);
+        }
+        [data-theme="dark"] .nav-btn:hover:not(:disabled) {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        [data-theme="dark"] .nav-btn:disabled {
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        [data-theme="dark"] #reviewQuestions {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        [data-theme="dark"] #reviewQuestions:hover {
+            background-color: var(--primary-hover);
+        }
+        /* Add a progress indicator */
+        .progress-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            transition: all 0.2s ease;
+        }
+        .progress-dot.active {
+            background-color: var(--primary-color);
+            transform: scale(1.2);
+        }
+        .progress-dot.completed {
+            background-color: var(--success-color);
         }
     `;
     document.head.appendChild(style);
@@ -445,57 +554,57 @@ function displayAllQuestions() {
         .join('');
 }
 
-// Update this function to ensure proper rendering of question types
+// Update the generateQuestionHTML function to include the new flag button
 function generateQuestionHTML(question, index) {
     const questionNumber = index + 1;
-
-    if (question.type === 'multiple-choice') {
-        return `
-            <div class="question ${question.difficulty}">
-                <div class="question-text">
-                    <span class="question-number">${questionNumber}</span>
-                    <div>
+    const isFlagged = currentQuiz.flaggedQuestions.has(questionNumber);
+    
+    return `
+        <div class="question-container">
+            <button class="flag-btn ${isFlagged ? 'flagged' : ''}" 
+                    onclick="toggleFlag(${questionNumber})" 
+                    title="${isFlagged ? 'Unflag Question' : 'Flag Question'}">
+                <svg viewBox="0 0 24 24">
+                    <path d="${isFlagged ? 
+                        'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z' : 
+                        'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z'}"/>
+                </svg>
+            </button>
+            <div class="question-content">
+                ${question.type === 'multiple-choice' ? `
+                    <div class="question-text">
                         <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span>
                         ${question.question}
                     </div>
-                </div>
-                <div class="options">
-                    ${question.options.map((option, optionIndex) => `
-                        <label class="option" for="q${questionNumber}o${optionIndex}">
-                            <input type="radio" 
-                                   name="question${questionNumber}" 
-                                   value="${optionIndex}"
-                                   id="q${questionNumber}o${optionIndex}">
-                            <span>${option}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    } else if (question.type === 'free-response') {
-        return `
-            <div class="question ${question.difficulty}">
-                <div class="question-text">
-                    <span class="question-number">${questionNumber}</span>
-                    <div>
+                    <div class="options">
+                        ${question.options.map((option, optionIndex) => `
+                            <label class="option" for="q${questionNumber}o${optionIndex}">
+                                <input type="radio" 
+                                       name="question${questionNumber}" 
+                                       value="${optionIndex}"
+                                       id="q${questionNumber}o${optionIndex}">
+                                <span>${option}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="question-text">
                         <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span>
                         <span class="question-type-badge">Free Response</span>
                         ${question.question}
                     </div>
-                </div>
-                <div class="free-response">
-                    <textarea 
-                        class="response-input" 
-                        rows="4" 
-                        placeholder="Type your answer here..."
-                        id="q${questionNumber}response"
-                    ></textarea>
-                </div>
+                    <div class="free-response">
+                        <textarea 
+                            class="response-input" 
+                            rows="4" 
+                            placeholder="Type your answer here..."
+                            id="q${questionNumber}response"
+                        ></textarea>
+                    </div>
+                `}
             </div>
-        `;
-    } else {
-        return ''; // Return empty if the question type is not recognized
-    }
+        </div>
+    `;
 }
 
 // Update the generateQuiz function
@@ -872,235 +981,54 @@ async function gradeQuiz() {
 
 // Update the results display to support dark theme
 function displayResults(results) {
-    resultsSection.classList.remove('hidden');
-    quizSection.classList.add('hidden');
-    
-    // Calculate total score
     const totalQuestions = results.length;
     const correctAnswers = results.filter(r => r.isCorrect).length;
     const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
-    
-    let resultsHTML = '<div class="results-content">';
-    
-    // Add total score at the top
-    resultsHTML += `
-        <div class="total-score">
-            <h2>Quiz Results</h2>
-            <div class="score-display">
-                <span class="score-number">${scorePercentage}%</span>
-                <span class="score-details">${correctAnswers} out of ${totalQuestions} correct</span>
+
+    // Update score display
+    document.querySelector('.score-number').textContent = `${scorePercentage}%`;
+    document.querySelector('.score-details').textContent = 
+        `${correctAnswers} out of ${totalQuestions} correct`;
+
+    // Generate results HTML
+    const resultsHTML = results.map((result, index) => `
+        <div class="question-result ${result.isCorrect ? 'correct' : 'incorrect'}">
+            <div class="question-header">
+                <h3>Question ${index + 1}</h3>
+                <span class="result-indicator">
+                    ${result.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                </span>
             </div>
-        </div>
-    `;
-    
-    // Add individual question results
-    results.forEach((result, index) => {
-        resultsHTML += `
-            <div class="question-result ${result.isCorrect ? 'correct' : 'incorrect'}">
-                <div class="question-header">
-                    <h3>Question ${index + 1}</h3>
-                    <span class="result-indicator">${result.isCorrect ? '✓ Correct' : '✗ Incorrect'}</span>
-                </div>
-                <div class="question-content">
-                    <p class="question-text">${result.question}</p>
+            <div class="question-content">
+                <p class="question-text">${result.question}</p>
+                <div class="answer-section">
                     ${result.type === 'multiple-choice' ? `
-                        <div class="answer-section">
-                            <p class="your-answer ${result.isCorrect ? 'correct-text' : 'incorrect-text'}">
-                                Your answer: ${result.userAnswer}
+                        <p class="your-answer ${result.isCorrect ? 'correct-text' : 'incorrect-text'}">
+                            Your answer: ${result.userAnswer}
+                        </p>
+                        ${!result.isCorrect ? `
+                            <p class="correct-answer">
+                                Correct answer: ${result.correctAnswer}
                             </p>
-                            ${!result.isCorrect ? `
-                                <p class="correct-answer">Correct answer: ${result.correctAnswer}</p>
-                            ` : ''}
-                        </div>
+                        ` : ''}
                     ` : `
-                        <div class="answer-section">
-                            <div class="free-response">
-                                <p class="answer-label">Your Response:</p>
-                                <p class="user-response">${result.userAnswer}</p>
-                                <p class="answer-label">Sample Answer:</p>
-                                <p class="sample-answer">${result.sampleAnswer}</p>
-                            </div>
+                        <div class="free-response">
+                            <p class="answer-label">Your Response:</p>
+                            <p class="user-response">${result.userAnswer}</p>
+                            <p class="answer-label">Sample Answer:</p>
+                            <p class="sample-answer">${result.sampleAnswer}</p>
                         </div>
                     `}
-                    <div class="explanation">
-                        <p class="explanation-label">Explanation:</p>
-                        <p>${result.explanation}</p>
-                    </div>
+                </div>
+                <div class="explanation">
+                    <p class="explanation-label">Explanation:</p>
+                    <p>${result.explanation}</p>
                 </div>
             </div>
-        `;
-    });
-    
-    resultsHTML += '</div>';
-    
-    // Add buttons container with more spacing
-    resultsHTML += `
-        <div class="results-buttons" style="display: flex; justify-content: space-between; margin: 20px 0;">
-            <button id="generateSimilar" class="btn">Generate Similar Quiz</button>
         </div>
-    `;
-    
-    resultsContainer.innerHTML = resultsHTML;
+    `).join('');
 
-    // Add styles for results display
-    const style = document.createElement('style');
-    style.textContent = `
-        .results-content {
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .total-score {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px;
-            background: var(--background-alt);
-            border-radius: 8px;
-            color: var(--text-primary);
-        }
-        .score-display {
-            margin-top: 15px;
-        }
-        .score-number {
-            font-size: 48px;
-            font-weight: bold;
-            color: var(--accent-color, #2196F3);
-            display: block;
-        }
-        .score-details {
-            font-size: 18px;
-            color: var(--text-secondary);
-        }
-        .question-result {
-            margin-bottom: 30px;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            background: var(--background-alt);
-        }
-        .question-result.correct {
-            background: var(--correct-bg);
-            border-left: 5px solid var(--correct-color);
-        }
-        .question-result.incorrect {
-            background: var(--incorrect-bg);
-            border-left: 5px solid var(--incorrect-color);
-        }
-        .question-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-        .result-indicator {
-            font-weight: 500;
-        }
-        .correct .result-indicator {
-            color: var(--correct-color);
-        }
-        .incorrect .result-indicator {
-            color: var(--incorrect-color);
-        }
-        .question-content {
-            padding: 10px 0;
-            color: var(--text-primary);
-        }
-        .question-text {
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-        .answer-section {
-            margin: 15px 0;
-            padding: 15px;
-            background: var(--background-alt-transparent);
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-        .your-answer {
-            font-weight: 500;
-            margin-bottom: 10px;
-        }
-        .correct-text {
-            color: var(--correct-color);
-        }
-        .incorrect-text {
-            color: var(--incorrect-color);
-        }
-        .correct-answer {
-            color: var(--correct-color);
-            font-weight: 500;
-        }
-        .free-response {
-            margin: 10px 0;
-        }
-        .answer-label {
-            font-weight: 500;
-            margin: 10px 0 5px 0;
-            color: var(--text-secondary);
-        }
-        .user-response, .sample-answer {
-            padding: 10px;
-            background: var(--background-main);
-            border-radius: 4px;
-            margin: 5px 0;
-            border: 1px solid var(--border-color);
-        }
-        .explanation {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid var(--border-color);
-        }
-        .explanation-label {
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        /* CSS Variables for theme support */
-        :root {
-            /* Light theme */
-            --background-main: #ffffff;
-            --background-alt: #f5f5f5;
-            --background-alt-transparent: rgba(245, 245, 245, 0.5);
-            --text-primary: #333333;
-            --text-secondary: #666666;
-            --border-color: rgba(0, 0, 0, 0.1);
-            --correct-color: #4CAF50;
-            --incorrect-color: #F44336;
-            --correct-bg: #E8F5E9;
-            --incorrect-bg: #FFEBEE;
-            --accent-color: #2196F3;
-        }
-
-        /* Dark theme */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background-main: #1a1a1a;
-                --background-alt: #2d2d2d;
-                --background-alt-transparent: rgba(45, 45, 45, 0.5);
-                --text-primary: #ffffff;
-                --text-secondary: #b0b0b0;
-                --border-color: rgba(255, 255, 255, 0.1);
-                --correct-color: #81c784;
-                --incorrect-color: #e57373;
-                --correct-bg: rgba(76, 175, 80, 0.15);
-                --incorrect-bg: rgba(244, 67, 54, 0.15);
-                --accent-color: #64b5f6;
-            }
-            
-            .question-result {
-                box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            }
-            
-            .answer-section {
-                background: rgba(45, 45, 45, 0.6);
-            }
-        }
-    `;
-    document.head.appendChild(style);
+    document.getElementById('resultsContainer').innerHTML = resultsHTML;
 }
 
 // Handle "Generate New Quiz" button
@@ -1379,4 +1307,28 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !aboutModal.classList.contains('hidden')) {
         closeModal();
     }
+});
+
+// Add these functions for number input controls
+window.incrementQuestions = function() {
+    const input = document.getElementById('questionCount');
+    const currentValue = parseInt(input.value) || 0;
+    if (currentValue < 30) {
+        input.value = currentValue + 1;
+    }
+};
+
+window.decrementQuestions = function() {
+    const input = document.getElementById('questionCount');
+    const currentValue = parseInt(input.value) || 0;
+    if (currentValue > 1) {
+        input.value = currentValue - 1;
+    }
+};
+
+// Add input validation
+document.getElementById('questionCount').addEventListener('input', function(e) {
+    let value = parseInt(e.target.value);
+    if (value > 30) e.target.value = 30;
+    if (value < 1) e.target.value = 1;
 });

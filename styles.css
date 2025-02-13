@@ -7,17 +7,29 @@
 
 :root {
     --primary-color: #4B4EFC;
+    --primary-hover: #3538E8;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
     --text-color: #1A1A1A;
+    --text-secondary: #6c757d;
     --background-color: #FFFFFF;
     --card-background: #FFFFFF;
-    --border-radius: 16px;
+    --border-color: #E5E7EB;
+    --border-radius: 12px;
     --spacing-lg: 2rem;
     --spacing-md: 1rem;
+    --spacing-sm: 0.5rem;
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --dark-bg: #1a1a1a;
-    --dark-card: #2d2d2d;
-    --dark-text: #ffffff;
-    --dark-border: #404040;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+    
+    /* Light theme specific */
+    --input-background: #FFFFFF;
+    --hover-background: #F8F9FF;
+    --success-light: #e8f5e9;
+    --danger-light: #ffebee;
 }
 
 body {
@@ -26,27 +38,33 @@ body {
     padding: var(--spacing-lg);
     background-color: var(--background-color);
     color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
-    border-radius: var(--border-radius);
+    position: relative;
 }
 
-h1, h2 {
-    font-weight: 600;
+h1, h2, h3 {
     color: var(--text-color);
-    margin-bottom: var(--spacing-lg);
-    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+    font-weight: 600;
+    line-height: 1.2;
 }
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
 
 .quiz-form, .quiz-section, .results-section {
     background: var(--card-background);
     padding: var(--spacing-lg);
     border-radius: var(--border-radius);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--border-color);
 }
 
 .form-group {
@@ -55,47 +73,45 @@ h1, h2 {
     border-radius: var(--border-radius);
 }
 
-label {
+.form-label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
     font-weight: 500;
     color: var(--text-color);
 }
 
-textarea, 
-input[type="number"],
-.form-select {
+.form-control {
     width: 100%;
-    padding: 1rem;
-    border: 2px solid #E5E7EB;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
     border-radius: var(--border-radius);
-    font-size: 1rem;
     background: var(--card-background);
-    transition: border-color 0.2s ease;
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all 0.2s ease;
 }
 
-textarea:focus, 
-input[type="number"]:focus,
-.form-select:focus {
+.form-control:focus {
     border-color: var(--primary-color);
     outline: none;
+    box-shadow: 0 0 0 3px rgba(75, 78, 252, 0.1);
 }
 
 .btn {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 1rem 2rem;
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
     border: none;
     border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: 1rem;
+    background: var(--primary-color);
+    color: white;
     font-weight: 500;
-    width: 100%;
-    transition: transform 0.2s ease, background-color 0.2s ease;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .btn:hover {
-    background-color: #3538E8;
+    background: var(--primary-hover);
     transform: translateY(-2px);
 }
 
@@ -499,14 +515,23 @@ input[type="number"]:focus,
 
 /* Dark theme styles */
 [data-theme="dark"] {
-    --background-color: #1a1a1a;
-    --card-background: #2d2d2d;
-    --text-color: #ffffff;
-    --border-color: var(--dark-text);
+    --text-color: #FFFFFF;
+    --text-secondary: #9CA3AF;
+    --background-color: #1A1A1A;
+    --card-background: #2D2D2D;
+    --border-color: #404040;
+    --input-background: #2d2d2d;
+    --hover-background: #3a3a3a;
+    --success-light: rgba(40, 167, 69, 0.2);
+    --danger-light: rgba(220, 53, 69, 0.2);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="dark"] h1,
-[data-theme="dark"] h2 {
+[data-theme="dark"] h2,
+[data-theme="dark"] h3 {
     color: white;
 }
 
@@ -521,7 +546,7 @@ input[type="number"]:focus,
 }
 
 [data-theme="dark"] .theme-toggle {
-    background: var(--dark-card);
+    background: var(--card-background);
     border-color: white;
 }
 
@@ -530,19 +555,19 @@ input[type="number"]:focus,
 }
 
 [data-theme="dark"] label {
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .file-name {
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] textarea, 
 [data-theme="dark"] input[type="number"],
 [data-theme="dark"] .form-select {
-    background: var(--dark-card);
+    background: var(--input-background);
     border-color: var(--border-color);
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .theme-toggle .sun-icon {
@@ -556,13 +581,13 @@ input[type="number"]:focus,
 /* Update the hover state for dark mode */
 [data-theme="dark"] .option:hover {
     border-color: var(--primary-color);
-    background-color: #3a3a3a;  /* Darker hover color for dark mode */
+    background-color: var(--hover-background);
 }
 
 [data-theme="dark"] .option.selected,
 [data-theme="dark"] .option input[type="radio"]:checked + span + .option {
     border-color: var(--primary-color);
-    background-color: #3a3a3a;  /* Same darker color for selected state */
+    background-color: var(--hover-background);
 }
 
 /* Update the hover background for selected options in dark mode */
@@ -578,25 +603,25 @@ input[type="number"]:focus,
 
 /* Add dark mode styles for the review/results screen */
 [data-theme="dark"] .result-item {
-    background: var(--dark-card);
+    background: var(--card-background);
     border: 1px solid var(--border-color);
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .result-item.correct {
-    background-color: rgba(25, 135, 84, 0.2);  /* Darker green background */
-    border-color: #198754;
+    background-color: var(--success-light);
+    border-color: var(--success-color);
 }
 
 [data-theme="dark"] .result-item.incorrect {
-    background-color: rgba(220, 53, 69, 0.2);  /* Darker red background */
-    border-color: #dc3545;
+    background-color: var(--danger-light);
+    border-color: var(--danger-color);
 }
 
 [data-theme="dark"] .explanation {
-    background-color: var(--dark-card);
+    background-color: var(--card-background);
     border-color: var(--primary-color);
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .score {
@@ -604,17 +629,17 @@ input[type="number"]:focus,
 }
 
 [data-theme="dark"] .result-item strong {
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .result-item p {
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 /* Update the form select styles for dark mode */
 [data-theme="dark"] .form-select {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+    background-color: var(--input-background);
+    color: var(--text-color);
     border-color: var(--border-color);
 }
 
@@ -625,8 +650,8 @@ input[type="number"]:focus,
 
 /* Style the dropdown options in dark mode */
 [data-theme="dark"] .form-select option {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+    background-color: var(--input-background);
+    color: var(--text-color);
 }
 
 /* Update loading screen text color for dark mode */
@@ -680,9 +705,9 @@ input[type="number"]:focus,
 
 /* Dark mode styles for free response */
 [data-theme="dark"] .response-input {
-    background-color: var(--dark-card);
+    background-color: var(--input-background);
     border-color: var(--border-color);
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .response-input:focus {
@@ -710,8 +735,8 @@ input[type="number"]:focus,
 }
 
 [data-theme="dark"] .feedback {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+    background-color: var(--card-background);
+    color: var(--text-color);
 }
 
 /* Add styles for free response grading */
@@ -724,8 +749,8 @@ input[type="number"]:focus,
 }
 
 [data-theme="dark"] .sample-answer {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+    background-color: var(--card-background);
+    color: var(--text-color);
 }
 
 .score-badge {
@@ -751,7 +776,7 @@ input[type="number"]:focus,
 }
 
 [data-theme="dark"] .feedback {
-    background-color: var(--dark-card);
+    background-color: var(--card-background);
 }
 
 /* Timer styles */
@@ -900,7 +925,7 @@ input:checked + .slider:before {
 /* Dark mode support */
 [data-theme="dark"] .timer-alert {
     background-color: rgba(255, 255, 255, 0.9);
-    color: var(--dark-bg);
+    color: var(--text-color);
 }
 
 /* Tab Navigation Styles */
@@ -975,17 +1000,17 @@ input:checked + .slider:before {
 
 /* Dark mode styles for tabs */
 [data-theme="dark"] .tab-btn {
-    background: var(--dark-card);
-    color: var(--dark-text);
+    background: var(--card-background);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .tab-btn:hover:not(.active) {
-    background: #3a3a3a;
+    background: var(--input-background);
 }
 
 [data-theme="dark"] .feedback-category {
-    background: var(--dark-card);
-    color: var(--dark-text);
+    background: var(--card-background);
+    color: var(--text-color);
 }
 
 /* Rubric styles */
@@ -1031,106 +1056,190 @@ input:checked + .slider:before {
 
 /* Dark mode styles for rubric */
 [data-theme="dark"] #rubricText {
-    background-color: var(--dark-card);
+    background-color: var(--card-background);
     border-color: var(--border-color);
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .rubric-evaluation {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+    background-color: var(--card-background);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .rubric-list li {
-    border-color: var(--dark-border);
+    border-color: var(--border-color);
 }
 
-/* Progress bar and single question view styles */
+/* Progress container styles */
 .progress-container {
     margin-bottom: 2rem;
     background: var(--card-background);
     padding: 1.5rem;
     border-radius: var(--border-radius);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background-color: #E5E7EB;
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    margin: 0.5rem 0;
-}
-
-.progress-fill {
-    height: 100%;
-    background-color: var(--primary-color);
-    transition: width 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
 }
 
 .progress-text {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     color: var(--text-color);
     font-weight: 500;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
 }
 
-.question-navigation {
+.progress-indicator {
     display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
 }
 
-.nav-btn {
-    padding: 0.75rem 1.5rem;
-    background-color: var(--card-background);
-    border: 2px solid var(--primary-color);
-    color: var(--primary-color);
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s ease;
+.progress-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--border-color);
+    transition: all 0.3s ease;
+    position: relative;
 }
 
-.nav-btn:hover {
+.progress-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 0.75rem;
+    height: 2px;
+    background-color: var(--border-color);
+    transform: translateY(-50%);
+}
+
+.progress-dot:last-child::after {
+    display: none;
+}
+
+.progress-dot.active {
     background-color: var(--primary-color);
-    color: white;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 2px rgba(75, 78, 252, 0.2);
 }
 
-.nav-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: #E5E7EB;
-    color: #9CA3AF;
+.progress-dot.completed {
+    background-color: var(--success-color);
 }
 
-/* Dark mode styles */
+.progress-dot.completed::after {
+    background-color: var(--success-color);
+}
+
+/* Dark theme support */
 [data-theme="dark"] .progress-container {
     background: var(--dark-card);
-}
-
-[data-theme="dark"] .progress-bar {
-    background-color: var(--dark-border);
+    border-color: var(--dark-border);
+    box-shadow: var(--shadow-sm);
 }
 
 [data-theme="dark"] .progress-text {
     color: var(--dark-text);
 }
 
-[data-theme="dark"] .nav-btn {
-    background-color: var(--dark-card);
-    color: var(--dark-text);
+[data-theme="dark"] .progress-dot {
+    background-color: var(--dark-border);
 }
 
-[data-theme="dark"] .nav-btn:hover:not(:disabled) {
+[data-theme="dark"] .progress-dot::after {
+    background-color: var(--dark-border);
+}
+
+[data-theme="dark"] .progress-dot.active {
     background-color: var(--primary-color);
-    color: white;
+    box-shadow: 0 0 0 2px rgba(75, 78, 252, 0.3);
+}
+
+[data-theme="dark"] .progress-dot.completed {
+    background-color: var(--success-color);
+}
+
+[data-theme="dark"] .progress-dot.completed::after {
+    background-color: var(--success-color);
+}
+
+/* Question container to support flag button */
+.question-container {
+    position: relative;
+    padding: 1rem;
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+/* Update flag button styles */
+.flag-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+.flag-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    transition: all 0.2s ease;
+}
+
+.flag-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+.flag-btn.flagged {
+    color: var(--warning-color);
+}
+
+/* Dark theme support for flag button */
+[data-theme="dark"] .flag-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Update question container to support flag button */
+.question-container {
+    position: relative;
+    padding: 1rem;
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+/* Update progress dots for dark theme */
+[data-theme="dark"] .progress-dot {
+    background-color: var(--border-color);
+}
+
+[data-theme="dark"] .progress-dot.active {
+    background-color: var(--primary-color);
+}
+
+[data-theme="dark"] .progress-dot.completed {
+    background-color: var(--success-color);
 }
 
 /* About button and modal styles */
 .about-link {
-    position: absolute;
+    position: fixed;
     top: 20px;
     left: 20px;
     z-index: 1000;
@@ -1142,16 +1251,17 @@ input:checked + .slider:before {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: var(--border-radius);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .about-btn:hover {
-    background-color: #3538E8;
+    background-color: var(--primary-hover);
     transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .about-btn:focus {
@@ -1249,17 +1359,326 @@ input:checked + .slider:before {
 
 /* Dark mode styles */
 [data-theme="dark"] .modal-content {
-    background: var(--dark-card);
+    background: var(--card-background);
 }
 
 [data-theme="dark"] .close-btn {
-    color: var(--dark-text);
+    color: var(--text-color);
 }
 
 [data-theme="dark"] .creator-info {
-    border-color: var(--dark-border);
+    border-color: var(--border-color);
 }
 
 [data-theme="dark"] .subtitle {
-    color: #9CA3AF;
+    color: var(--text-secondary);
+}
+
+/* Update the results display styles */
+.results-content {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.total-score {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.score-display {
+    margin-top: 15px;
+}
+
+.score-number {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--primary-color);
+    display: block;
+}
+
+.score-details {
+    font-size: 18px;
+    color: var(--text-secondary);
+}
+
+.question-result {
+    margin-bottom: 30px;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    background: var(--card-background);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+}
+
+.question-result.correct {
+    border-left: 5px solid var(--success-color);
+}
+
+.question-result.incorrect {
+    border-left: 5px solid var(--danger-color);
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.result-indicator {
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+}
+
+.correct .result-indicator {
+    color: var(--success-color);
+    background: var(--success-light);
+}
+
+.incorrect .result-indicator {
+    color: var(--danger-color);
+    background: var(--danger-light);
+}
+
+/* Dark theme styles for results */
+[data-theme="dark"] .total-score {
+    background: var(--card-background);
+}
+
+[data-theme="dark"] .question-result {
+    background: var(--card-background);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .question-header {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .question-content {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .answer-section {
+    background: var(--input-background);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .explanation {
+    background-color: var(--card-background);
+    border-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .explanation-label {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .score-details {
+    color: var(--text-secondary);
+}
+
+/* Add smooth transitions for theme switching */
+.question-result,
+.total-score,
+.answer-section,
+.explanation {
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: var(--spacing-md);
+    }
+
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.75rem; }
+    h3 { font-size: 1.25rem; }
+
+    .score-number {
+        font-size: 2.5rem;
+    }
+
+    .question-header {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        text-align: center;
+    }
+}
+
+/* Update results buttons container */
+.results-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.results-buttons .btn {
+    min-width: 200px;
+}
+
+/* Improve text input styling */
+#textInput {
+    width: 100%;
+    min-height: 120px;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-family: var(--font-family);
+    resize: vertical;
+    background: var(--card-background);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+#textInput:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(75, 78, 252, 0.1);
+}
+
+/* Add these styles for the number input */
+input[type="number"] {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    background: var(--card-background);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    -moz-appearance: textfield; /* Remove default arrows in Firefox */
+}
+
+/* Remove default arrows/spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Style focus state */
+input[type="number"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(75, 78, 252, 0.1);
+}
+
+/* Add custom number controls */
+.number-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.number-controls {
+    position: absolute;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.number-control-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.number-control-btn:hover {
+    color: var(--primary-color);
+}
+
+/* Dark mode support */
+[data-theme="dark"] input[type="number"] {
+    background: var(--input-background);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .number-control-btn {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .number-control-btn:hover {
+    color: var(--primary-color);
+}
+
+/* Update flag button styles */
+.flag-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+.flag-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    transition: all 0.2s ease;
+}
+
+.flag-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+.flag-btn.flagged {
+    color: var(--warning-color);
+}
+
+/* Dark theme support for flag button */
+[data-theme="dark"] .flag-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Update question container to support flag button */
+.question-container {
+    position: relative;
+    padding: 1rem;
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+/* Update progress dots for dark theme */
+[data-theme="dark"] .progress-dot {
+    background-color: var(--border-color);
+}
+
+[data-theme="dark"] .progress-dot.active {
+    background-color: var(--primary-color);
+}
+
+[data-theme="dark"] .progress-dot.completed {
+    background-color: var(--success-color);
 } 
